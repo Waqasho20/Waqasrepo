@@ -10,35 +10,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk python3-pip python3-setuptools python3-dev \
-            libxml2-dev libxslt1-dev zlib1g-dev git pkg-config libffi-dev libssl-dev curl
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y zip unzip openjdk-17-jdk python3-pip python3-setuptools python3-dev \
+          libxml2-dev libxslt1-dev zlib1g-dev git pkg-config libffi-dev libssl-dev curl
 
-          pip install --upgrade pip
-          pip install cython buildozer
+    - name: Install Apache ANT (required by Buildozer)
+      run: |
+        curl -sSLO https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.4-bin.tar.gz
+        tar -xzf apache-ant-1.9.4-bin.tar.gz
+        sudo mv apache-ant-1.9.4 /opt/ant
+        echo "ANT_HOME=/opt/ant" >> $GITHUB_ENV
+        echo "/opt/ant/bin" >> $GITHUB_PATH
 
-      - name: Accept Android Licenses
-        run: |
-          mkdir -p ~/.android
-          echo '### User Agreements' > ~/.android/repositories.cfg  # prevent SDK errors
-          yes | sdkmanager --licenses || true  # ignore interactive errors
+    - name: Install Buildozer and Cython
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install buildozer cython
 
-      - name: Build APK
-        run: |
-          buildozer android debug
+    - name: Initialize Buildozer (if .spec is missing)
+      run: |
+        if [ ! -f buildozer.spec ]; then
+          buildozer init
+        fi
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: kivy-apk
-          path: bin/*.apk
+    - name: Build the APK
+      run: |
+        buildozer android debug
+
+    - name: Upload APK as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kivy-apk
+        path: bin/*.apk
