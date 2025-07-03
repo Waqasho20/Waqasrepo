@@ -7,31 +7,25 @@ on:
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: 🧰 Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y buildozer python3-pip unzip zip openjdk-17-jdk python3-setuptools python3-pillow git libxml2-dev libxslt1-dev zlib1g-dev
+          pip install --upgrade pip
+          pip install buildozer cython
 
-    - name: ⚙️ Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y git zip unzip openjdk-17-jdk python3-pip
-        python3 -m pip install --upgrade pip
-        pip install buildozer cython
+      - name: Build APK
+        run: |
+          buildozer android debug
 
-    - name: 🚧 Build APK
-      run: |
-        buildozer init || true
-        buildozer android debug
-
-    - name: 📦 Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: WaqasDownloader-APK
-        path: bin/*.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kivy-apk
+          path: bin/*.apk
